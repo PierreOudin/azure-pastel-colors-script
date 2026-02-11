@@ -14,12 +14,16 @@
 (function() {
     'use strict';
 
+    // Log immédiat pour vérifier que le script s'exécute
+    console.log('🎨 Azure Pastel Theme: Script démarré - URL:', window.location.href);
+
     // Gestionnaire d'erreurs global
     window.addEventListener('error', function(e) {
         console.error('Azure Pastel Theme: Erreur détectée', e.message);
     });
 
     try {
+        console.log('🎨 Azure Pastel Theme: Initialisation...');
         // Initialisation des variables globales
         window.azurePastelDebug = GM_getValue('azurePastelDebug', false);
         window.azurePastelAttempts = 0;
@@ -300,6 +304,9 @@
 
     // Variable pour contrôler l'intervalle
     let pastelInterval = null;
+
+    // Log de confirmation que tout est chargé
+    console.log('🎨 Azure Pastel Theme: Toutes les fonctions définies, enregistrement des menus...');
 
     // Enregistrer les commandes du menu Tampermonkey
     GM_registerMenuCommand('🎨 Pastel Léger', () => setPreset('pastel-leger'));
