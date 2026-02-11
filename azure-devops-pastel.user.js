@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Azure DevOps Pastel Colors
 // @namespace    http://tampermonkey.net/
-// @version      1.3
-// @description  Transforme les couleurs agressives des workitems Azure DevOps en teintes pastel avec dropdown intégrée dans la navbar
+// @version      1.4
+// @description  Transforme les couleurs agressives des workitems Azure DevOps en teintes pastel avec dropdown intégrée dans les onglets
 // @author       PierreOudin
 // @match        https://dev.azure.com/*
 // @match        https://*.visualstudio.com/*
@@ -199,59 +199,44 @@
             setTimeout(applyPastelColors, 100);
         }
 
-        // Créer la dropdown intégrée à la navbar d'Azure DevOps
+        // Créer la dropdown intégrée aux onglets Azure DevOps
         function createAzureDevOpsDropdown() {
-            if (document.getElementById('azure-pastel-nav-item')) return;
+            if (document.getElementById('azure-pastel-tab')) return;
             
-            // Chercher la barre de navigation (plusieurs sélecteurs possibles)
-            const navSelectors = [
-                '.top-level-navigation',
-                '.hub-nav',
-                '[role="navigation"] .hub-list',
-                '.page-tabs',
-                '.navigation-container'
-            ];
+            // Chercher le conteneur des onglets avec le sélecteur exact fourni
+            const tabsContainer = document.querySelector('.boards-tabbar-tabs.bolt-tabbar-tabs.flex-grow.flex-wrap.bolt-tabs.flex-row.compact');
             
-            let navBar = null;
-            for (const selector of navSelectors) {
-                navBar = document.querySelector(selector);
-                if (navBar) break;
-            }
-            
-            // Si on ne trouve pas la navbar, chercher les onglets Board/Analytics
-            if (!navBar) {
-                const boardTab = document.querySelector('a[href*="_boards"], button:contains("Board"), [data-content="Board"]');
-                if (boardTab) {
-                    navBar = boardTab.parentElement;
-                }
-            }
-            
-            if (!navBar) {
-                console.log('🎨 Azure Pastel: Navbar non trouvée, utilisation du menu Tampermonkey uniquement');
+            if (!tabsContainer) {
+                console.log('🎨 Azure Pastel: Conteneur d\'onglets non trouvé, utilisation du menu Tampermonkey uniquement');
                 return;
             }
             
-            // Créer l'élément de navigation
-            const navItem = document.createElement('div');
-            navItem.id = 'azure-pastel-nav-item';
-            navItem.style.cssText = `
+            // Créer un élément qui ressemble à un onglet Azure DevOps
+            const tabElement = document.createElement('div');
+            tabElement.id = 'azure-pastel-tab';
+            tabElement.className = 'bolt-tab focus-treatment flex-noshrink';
+            tabElement.setAttribute('role', 'tab');
+            tabElement.setAttribute('tabindex', '-1');
+            tabElement.style.cssText = `
                 display: inline-flex;
                 align-items: center;
-                margin-left: 16px;
-                padding: 0 8px;
+                margin-left: 8px;
+                padding: 8px 12px;
                 border-left: 1px solid #e0e0e0;
-                font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
-                font-size: 14px;
+            `;
+            
+            const innerContainer = document.createElement('span');
+            innerContainer.className = 'bolt-tab-inner-container';
+            innerContainer.style.cssText = `
+                display: flex;
+                align-items: center;
+                gap: 8px;
             `;
             
             const label = document.createElement('span');
+            label.className = 'bolt-tab-text';
             label.textContent = '🎨 Pastel:';
-            label.style.cssText = `
-                margin-right: 8px;
-                font-weight: 600;
-                color: #333;
-                white-space: nowrap;
-            `;
+            label.style.fontWeight = '600';
             
             const select = document.createElement('select');
             select.id = 'azure-pastel-select';
@@ -263,15 +248,15 @@
                 font-size: 13px;
                 cursor: pointer;
                 outline: none;
-                font-family: inherit;
-                min-width: 90px;
-                height: 28px;
+                font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+                min-width: 85px;
+                height: 24px;
             `;
             
             // Option par défaut
             const defaultOption = document.createElement('option');
             defaultOption.value = 'none';
-            defaultOption.textContent = 'Choisir...';
+            defaultOption.textContent = '...';
             select.appendChild(defaultOption);
             
             // Options des presets
@@ -296,24 +281,25 @@
                 background: transparent;
                 border: none;
                 cursor: pointer;
-                font-size: 14px;
-                padding: 4px;
-                margin-left: 6px;
+                font-size: 12px;
+                padding: 2px 4px;
                 color: #666;
-                line-height: 1;
+                margin-left: 4px;
             `;
-            resetBtn.addEventListener('click', () => {
+            resetBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 resetModifiedStyles();
                 select.value = 'none';
             });
             
-            navItem.appendChild(label);
-            navItem.appendChild(select);
-            navItem.appendChild(resetBtn);
+            innerContainer.appendChild(label);
+            innerContainer.appendChild(select);
+            innerContainer.appendChild(resetBtn);
+            tabElement.appendChild(innerContainer);
             
-            // Insérer dans la navbar
-            navBar.appendChild(navItem);
-            console.log('🎨 Azure Pastel: Dropdown ajoutée à la navbar');
+            // Ajouter à la fin du conteneur d'onglets
+            tabsContainer.appendChild(tabElement);
+            console.log('🎨 Azure Pastel: Dropdown ajoutée aux onglets');
         }
 
         // Menus Tampermonkey (backup)
