@@ -20,3 +20,8 @@ Thumbs.db
 
 # Tampermonkey backup files (if any)
 *.user.js.bak
+
+# BMAD local configuration
+_bmad/
+.opencode/
+_bmad-output/
