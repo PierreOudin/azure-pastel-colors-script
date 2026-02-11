@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Azure DevOps Pastel Colors
 // @namespace    http://tampermonkey.net/
-// @version      1.5
-// @description  Transforme les couleurs agressives des workitems Azure DevOps en teintes pastel avec dropdown intégrée
+// @version      1.6
+// @description  Transforme les couleurs agressives des workitems Azure DevOps en teintes pastel
 // @author       PierreOudin
 // @match        https://dev.azure.com/*
 // @match        https://*.visualstudio.com/*
@@ -14,15 +14,14 @@
 (function() {
     'use strict';
 
-    console.log('🎨 Azure Pastel Theme: Script démarré - URL:', window.location.href);
+    console.log('🎨 Azure Pastel Theme v1.6: Script démarré');
 
     window.addEventListener('error', function(e) {
         console.error('Azure Pastel Theme: Erreur détectée', e.message);
     });
 
     try {
-        console.log('🎨 Azure Pastel Theme: Initialisation...');
-        
+        // Configuration des presets
         const PRESETS = {
             'vif':     { saturationFactor: 0.85, lightnessBoost: 0.10, name: 'Vif' },
             'leger':   { saturationFactor: 0.70, lightnessBoost: 0.15, name: 'Léger' },
@@ -30,12 +29,15 @@
             'intense': { saturationFactor: 0.35, lightnessBoost: 0.35, name: 'Intense' }
         };
 
+        // Validation du preset
         let currentPreset = GM_getValue('currentPreset', 'leger');
         if (!PRESETS[currentPreset]) {
-            console.warn('Azure Pastel Theme: Preset invalide détecté, utilisation du preset par défaut');
+            console.warn('Preset invalide, utilisation de "leger"');
             currentPreset = 'leger';
             GM_setValue('currentPreset', currentPreset);
         }
+
+        console.log('🎨 Preset actuel:', currentPreset);
 
         const DEFAULT_COLORS = [
             '#ffffff', '#f5f5f5', '#fafafa', '#f8f8f8',
@@ -157,7 +159,7 @@
             });
 
             if (modifiedCount > 0) {
-                console.log(`✅ ${modifiedCount} workitem(s) modifié(s) avec preset "${PRESETS[currentPreset].name}"`);
+                console.log(`✅ ${modifiedCount} workitem(s) modifié(s)`);
             }
         }
 
@@ -176,64 +178,54 @@
                 card.removeAttribute('data-azure-original-color');
             });
             
-            console.log('🧹 Styles réinitialisés aux couleurs originales');
-            
-            // Mettre à jour la dropdown - ne pas remettre à 'none', garder la dernière valeur
-            // ou créer une option "Désactivé" séparée
+            console.log('🧹 Styles réinitialisés');
         }
 
         function setPreset(presetKey) {
-            if (!PRESETS[presetKey]) return;
+            if (!PRESETS[presetKey]) {
+                console.log('Preset invalide:', presetKey);
+                return;
+            }
             
             resetModifiedStyles();
             currentPreset = presetKey;
             GM_setValue('currentPreset', presetKey);
             console.log(`🎨 Preset changé: ${PRESETS[presetKey].name}`);
             
-            // Mettre à jour la valeur affichée dans la dropdown
-            const select = document.getElementById('azure-pastel-select');
-            if (select) {
-                select.value = presetKey;
-            }
-            
             setTimeout(applyPastelColors, 100);
         }
 
+        // Créer la dropdown
         function createAzureDevOpsDropdown() {
-            if (document.getElementById('azure-pastel-tab')) return;
-            
-            const tabsContainer = document.querySelector('.boards-tabbar-tabs.bolt-tabbar-tabs.flex-grow.flex-wrap.bolt-tabs.flex-row.compact');
-            
-            if (!tabsContainer) {
-                console.log('🎨 Azure Pastel: Conteneur d\'onglets non trouvé, utilisation du menu Tampermonkey uniquement');
+            if (document.getElementById('azure-pastel-tab')) {
+                console.log('Dropdown déjà présente');
                 return;
             }
             
+            const tabsContainer = document.querySelector('.boards-tabbar-tabs.bolt-tabbar-tabs');
+            
+            if (!tabsContainer) {
+                console.log('Conteneur d\'onglets non trouvé');
+                return;
+            }
+            
+            console.log('Création de la dropdown...');
+            
             const tabElement = document.createElement('div');
             tabElement.id = 'azure-pastel-tab';
-            tabElement.className = 'bolt-tab focus-treatment flex-noshrink';
-            tabElement.setAttribute('role', 'tab');
-            tabElement.setAttribute('tabindex', '-1');
             tabElement.style.cssText = `
                 display: inline-flex;
                 align-items: center;
                 margin-left: 8px;
                 padding: 8px 12px;
                 border-left: 1px solid #e0e0e0;
-            `;
-            
-            const innerContainer = document.createElement('span');
-            innerContainer.className = 'bolt-tab-inner-container';
-            innerContainer.style.cssText = `
-                display: flex;
-                align-items: center;
-                gap: 8px;
+                font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+                font-size: 14px;
             `;
             
             const label = document.createElement('span');
-            label.className = 'bolt-tab-text';
-            label.textContent = '🎨';
-            label.style.fontWeight = '600';
+            label.textContent = '🎨 ';
+            label.style.marginRight = '6px';
             
             const select = document.createElement('select');
             select.id = 'azure-pastel-select';
@@ -245,14 +237,13 @@
                 font-size: 13px;
                 cursor: pointer;
                 outline: none;
-                font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
-                min-width: 85px;
+                min-width: 90px;
                 height: 24px;
             `;
             
-            // Option "Désactivé" pour le reset
+            // Option désactivée
             const disabledOption = document.createElement('option');
-            disabledOption.value = 'disabled';
+            disabledOption.value = '';
             disabledOption.textContent = '—';
             select.appendChild(disabledOption);
             
@@ -264,44 +255,47 @@
                 select.appendChild(option);
             });
             
-            // Sélectionner le preset actuel
-            select.value = currentPreset;
+            // IMPORTANT: Attendre que les options soient ajoutées avant de setter la valeur
+            setTimeout(() => {
+                if (PRESETS[currentPreset]) {
+                    select.value = currentPreset;
+                    console.log('Dropdown initialisée avec:', currentPreset);
+                }
+            }, 0);
             
             select.addEventListener('change', (e) => {
-                if (e.target.value === 'disabled') {
+                const value = e.target.value;
+                if (value && PRESETS[value]) {
+                    setPreset(value);
+                } else if (value === '') {
                     resetModifiedStyles();
-                } else {
-                    setPreset(e.target.value);
                 }
             });
             
-            innerContainer.appendChild(label);
-            innerContainer.appendChild(select);
-            tabElement.appendChild(innerContainer);
-            
+            tabElement.appendChild(label);
+            tabElement.appendChild(select);
             tabsContainer.appendChild(tabElement);
-            console.log('🎨 Azure Pastel: Dropdown ajoutée aux onglets');
+            
+            console.log('✅ Dropdown créée avec succès');
         }
 
-        // Menus Tampermonkey (backup)
-        GM_registerMenuCommand('🎨 Pastel Vif (85%)', () => setPreset('vif'));
-        GM_registerMenuCommand('🎨 Pastel Léger (70%)', () => setPreset('leger'));
-        GM_registerMenuCommand('🎨 Pastel Moyen (50%)', () => setPreset('moyen'));
-        GM_registerMenuCommand('🎨 Pastel Intense (35%)', () => setPreset('intense'));
+        // Menus Tampermonkey
+        GM_registerMenuCommand('🎨 Vif', () => setPreset('vif'));
+        GM_registerMenuCommand('🎨 Léger', () => setPreset('leger'));
+        GM_registerMenuCommand('🎨 Moyen', () => setPreset('moyen'));
+        GM_registerMenuCommand('🎨 Intense', () => setPreset('intense'));
         GM_registerMenuCommand('🔄 Réappliquer', applyPastelColors);
         GM_registerMenuCommand('🧹 Réinitialiser', resetModifiedStyles);
 
-        // Appliquer au chargement et créer la dropdown
+        // Initialisation
         setTimeout(() => {
             applyPastelColors();
             createAzureDevOpsDropdown();
-        }, 2000);
+        }, 2500);
         
-        setTimeout(applyPastelColors, 5000);
-
-        console.log(`🎨 Azure Pastel Theme: Preset actuel - ${PRESETS[currentPreset].name}`);
+        setTimeout(applyPastelColors, 6000);
 
     } catch (error) {
-        console.error('Azure Pastel Theme: Erreur critique lors du chargement', error);
+        console.error('🚨 Erreur critique:', error);
     }
 })();
