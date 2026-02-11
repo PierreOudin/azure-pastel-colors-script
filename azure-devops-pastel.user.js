@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Azure DevOps Pastel Colors
 // @namespace    http://tampermonkey.net/
-// @version      1.2
-// @description  Transforme les couleurs agressives des workitems Azure DevOps en teintes pastel avec dropdown intégrée
+// @version      1.3
+// @description  Transforme les couleurs agressives des workitems Azure DevOps en teintes pastel avec dropdown intégrée dans la navbar
 // @author       PierreOudin
 // @match        https://dev.azure.com/*
 // @match        https://*.visualstudio.com/*
@@ -182,7 +182,6 @@
             
             console.log('🧹 Styles réinitialisés aux couleurs originales');
             
-            // Mettre à jour la dropdown si elle existe
             const select = document.getElementById('azure-pastel-select');
             if (select) {
                 select.value = 'none';
@@ -200,33 +199,59 @@
             setTimeout(applyPastelColors, 100);
         }
 
-        // Créer la dropdown dans l'interface Azure DevOps
+        // Créer la dropdown intégrée à la navbar d'Azure DevOps
         function createAzureDevOpsDropdown() {
-            if (document.getElementById('azure-pastel-dropdown')) return;
+            if (document.getElementById('azure-pastel-nav-item')) return;
             
-            const container = document.createElement('div');
-            container.id = 'azure-pastel-dropdown';
-            container.style.cssText = `
-                position: fixed;
-                top: 60px;
-                right: 20px;
-                z-index: 9999;
-                background: white;
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                padding: 8px 12px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                font-family: "Segoe UI", "Helvetica Neue", sans-serif;
-                font-size: 13px;
-                display: flex;
+            // Chercher la barre de navigation (plusieurs sélecteurs possibles)
+            const navSelectors = [
+                '.top-level-navigation',
+                '.hub-nav',
+                '[role="navigation"] .hub-list',
+                '.page-tabs',
+                '.navigation-container'
+            ];
+            
+            let navBar = null;
+            for (const selector of navSelectors) {
+                navBar = document.querySelector(selector);
+                if (navBar) break;
+            }
+            
+            // Si on ne trouve pas la navbar, chercher les onglets Board/Analytics
+            if (!navBar) {
+                const boardTab = document.querySelector('a[href*="_boards"], button:contains("Board"), [data-content="Board"]');
+                if (boardTab) {
+                    navBar = boardTab.parentElement;
+                }
+            }
+            
+            if (!navBar) {
+                console.log('🎨 Azure Pastel: Navbar non trouvée, utilisation du menu Tampermonkey uniquement');
+                return;
+            }
+            
+            // Créer l'élément de navigation
+            const navItem = document.createElement('div');
+            navItem.id = 'azure-pastel-nav-item';
+            navItem.style.cssText = `
+                display: inline-flex;
                 align-items: center;
-                gap: 8px;
+                margin-left: 16px;
+                padding: 0 8px;
+                border-left: 1px solid #e0e0e0;
+                font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+                font-size: 14px;
             `;
             
             const label = document.createElement('span');
             label.textContent = '🎨 Pastel:';
-            label.style.fontWeight = '600';
-            label.style.color = '#333';
+            label.style.cssText = `
+                margin-right: 8px;
+                font-weight: 600;
+                color: #333;
+                white-space: nowrap;
+            `;
             
             const select = document.createElement('select');
             select.id = 'azure-pastel-select';
@@ -238,7 +263,9 @@
                 font-size: 13px;
                 cursor: pointer;
                 outline: none;
-                min-width: 100px;
+                font-family: inherit;
+                min-width: 90px;
+                height: 28px;
             `;
             
             // Option par défaut
@@ -263,28 +290,30 @@
             });
             
             const resetBtn = document.createElement('button');
-            resetBtn.textContent = '🧹';
-            resetBtn.title = 'Réinitialiser les couleurs';
+            resetBtn.textContent = '✕';
+            resetBtn.title = 'Réinitialiser';
             resetBtn.style.cssText = `
-                background: #f0f0f0;
-                border: 1px solid #ccc;
-                border-radius: 2px;
+                background: transparent;
+                border: none;
                 cursor: pointer;
-                font-size: 12px;
-                padding: 4px 6px;
-                margin-left: 4px;
+                font-size: 14px;
+                padding: 4px;
+                margin-left: 6px;
+                color: #666;
+                line-height: 1;
             `;
             resetBtn.addEventListener('click', () => {
                 resetModifiedStyles();
                 select.value = 'none';
             });
             
-            container.appendChild(label);
-            container.appendChild(select);
-            container.appendChild(resetBtn);
+            navItem.appendChild(label);
+            navItem.appendChild(select);
+            navItem.appendChild(resetBtn);
             
-            document.body.appendChild(container);
-            console.log('🎨 Azure Pastel: Dropdown ajoutée à l\'interface');
+            // Insérer dans la navbar
+            navBar.appendChild(navItem);
+            console.log('🎨 Azure Pastel: Dropdown ajoutée à la navbar');
         }
 
         // Menus Tampermonkey (backup)
