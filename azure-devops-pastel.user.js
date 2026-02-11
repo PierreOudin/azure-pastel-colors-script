@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Azure DevOps Pastel Colors
 // @namespace    http://tampermonkey.net/
-// @version      1.6
+// @version      1.7
 // @description  Transforme les couleurs agressives des workitems Azure DevOps en teintes pastel
 // @author       PierreOudin
 // @match        https://dev.azure.com/*
@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-    console.log('🎨 Azure Pastel Theme v1.6: Script démarré');
+    console.log('🎨 Azure Pastel Theme v1.7: Script démarré');
 
     window.addEventListener('error', function(e) {
         console.error('Azure Pastel Theme: Erreur détectée', e.message);
@@ -195,7 +195,7 @@
             setTimeout(applyPastelColors, 100);
         }
 
-        // Créer la dropdown
+        // Créer la dropdown avec styles explicites pour la visibilité
         function createAzureDevOpsDropdown() {
             if (document.getElementById('azure-pastel-tab')) {
                 console.log('Dropdown déjà présente');
@@ -221,30 +221,38 @@
                 border-left: 1px solid #e0e0e0;
                 font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
                 font-size: 14px;
+                color: #333 !important;
             `;
             
             const label = document.createElement('span');
             label.textContent = '🎨 ';
-            label.style.marginRight = '6px';
+            label.style.cssText = `
+                margin-right: 6px;
+                font-weight: 600;
+                color: #333 !important;
+            `;
             
             const select = document.createElement('select');
             select.id = 'azure-pastel-select';
+            // Styles explicites pour forcer la visibilité
             select.style.cssText = `
                 padding: 4px 8px;
-                border: 1px solid #ccc;
+                border: 1px solid #666;
                 border-radius: 2px;
-                background: white;
+                background-color: #ffffff !important;
+                color: #000000 !important;
                 font-size: 13px;
                 cursor: pointer;
                 outline: none;
                 min-width: 90px;
-                height: 24px;
+                height: 28px;
             `;
             
             // Option désactivée
             const disabledOption = document.createElement('option');
             disabledOption.value = '';
             disabledOption.textContent = '—';
+            disabledOption.style.cssText = 'color: #000 !important; background: #fff !important;';
             select.appendChild(disabledOption);
             
             // Options des presets
@@ -252,6 +260,7 @@
                 const option = document.createElement('option');
                 option.value = key;
                 option.textContent = preset.name;
+                option.style.cssText = 'color: #000 !important; background: #fff !important;';
                 select.appendChild(option);
             });
             
