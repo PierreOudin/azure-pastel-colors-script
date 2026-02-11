@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Azure DevOps Pastel Colors
 // @namespace    http://tampermonkey.net/
-// @version      1.4
-// @description  Transforme les couleurs agressives des workitems Azure DevOps en teintes pastel avec dropdown intégrée dans les onglets
+// @version      1.5
+// @description  Transforme les couleurs agressives des workitems Azure DevOps en teintes pastel avec dropdown intégrée
 // @author       PierreOudin
 // @match        https://dev.azure.com/*
 // @match        https://*.visualstudio.com/*
@@ -16,7 +16,6 @@
 
     console.log('🎨 Azure Pastel Theme: Script démarré - URL:', window.location.href);
 
-    // Gestionnaire d'erreurs global
     window.addEventListener('error', function(e) {
         console.error('Azure Pastel Theme: Erreur détectée', e.message);
     });
@@ -24,7 +23,6 @@
     try {
         console.log('🎨 Azure Pastel Theme: Initialisation...');
         
-        // Configuration des presets
         const PRESETS = {
             'vif':     { saturationFactor: 0.85, lightnessBoost: 0.10, name: 'Vif' },
             'leger':   { saturationFactor: 0.70, lightnessBoost: 0.15, name: 'Léger' },
@@ -32,7 +30,6 @@
             'intense': { saturationFactor: 0.35, lightnessBoost: 0.35, name: 'Intense' }
         };
 
-        // Validation du preset
         let currentPreset = GM_getValue('currentPreset', 'leger');
         if (!PRESETS[currentPreset]) {
             console.warn('Azure Pastel Theme: Preset invalide détecté, utilisation du preset par défaut');
@@ -40,7 +37,6 @@
             GM_setValue('currentPreset', currentPreset);
         }
 
-        // Couleurs par défaut Azure DevOps à ignorer
         const DEFAULT_COLORS = [
             '#ffffff', '#f5f5f5', '#fafafa', '#f8f8f8',
             '#f0f0f0', '#ebebeb', '#e8e8e8', '#e5e5e5',
@@ -182,10 +178,8 @@
             
             console.log('🧹 Styles réinitialisés aux couleurs originales');
             
-            const select = document.getElementById('azure-pastel-select');
-            if (select) {
-                select.value = 'none';
-            }
+            // Mettre à jour la dropdown - ne pas remettre à 'none', garder la dernière valeur
+            // ou créer une option "Désactivé" séparée
         }
 
         function setPreset(presetKey) {
@@ -196,14 +190,18 @@
             GM_setValue('currentPreset', presetKey);
             console.log(`🎨 Preset changé: ${PRESETS[presetKey].name}`);
             
+            // Mettre à jour la valeur affichée dans la dropdown
+            const select = document.getElementById('azure-pastel-select');
+            if (select) {
+                select.value = presetKey;
+            }
+            
             setTimeout(applyPastelColors, 100);
         }
 
-        // Créer la dropdown intégrée aux onglets Azure DevOps
         function createAzureDevOpsDropdown() {
             if (document.getElementById('azure-pastel-tab')) return;
             
-            // Chercher le conteneur des onglets avec le sélecteur exact fourni
             const tabsContainer = document.querySelector('.boards-tabbar-tabs.bolt-tabbar-tabs.flex-grow.flex-wrap.bolt-tabs.flex-row.compact');
             
             if (!tabsContainer) {
@@ -211,7 +209,6 @@
                 return;
             }
             
-            // Créer un élément qui ressemble à un onglet Azure DevOps
             const tabElement = document.createElement('div');
             tabElement.id = 'azure-pastel-tab';
             tabElement.className = 'bolt-tab focus-treatment flex-noshrink';
@@ -235,7 +232,7 @@
             
             const label = document.createElement('span');
             label.className = 'bolt-tab-text';
-            label.textContent = '🎨 Pastel:';
+            label.textContent = '🎨';
             label.style.fontWeight = '600';
             
             const select = document.createElement('select');
@@ -253,51 +250,35 @@
                 height: 24px;
             `;
             
-            // Option par défaut
-            const defaultOption = document.createElement('option');
-            defaultOption.value = 'none';
-            defaultOption.textContent = '...';
-            select.appendChild(defaultOption);
+            // Option "Désactivé" pour le reset
+            const disabledOption = document.createElement('option');
+            disabledOption.value = 'disabled';
+            disabledOption.textContent = '—';
+            select.appendChild(disabledOption);
             
             // Options des presets
             Object.entries(PRESETS).forEach(([key, preset]) => {
                 const option = document.createElement('option');
                 option.value = key;
                 option.textContent = preset.name;
-                if (key === currentPreset) option.selected = true;
                 select.appendChild(option);
             });
             
+            // Sélectionner le preset actuel
+            select.value = currentPreset;
+            
             select.addEventListener('change', (e) => {
-                if (e.target.value !== 'none') {
+                if (e.target.value === 'disabled') {
+                    resetModifiedStyles();
+                } else {
                     setPreset(e.target.value);
                 }
             });
             
-            const resetBtn = document.createElement('button');
-            resetBtn.textContent = '✕';
-            resetBtn.title = 'Réinitialiser';
-            resetBtn.style.cssText = `
-                background: transparent;
-                border: none;
-                cursor: pointer;
-                font-size: 12px;
-                padding: 2px 4px;
-                color: #666;
-                margin-left: 4px;
-            `;
-            resetBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                resetModifiedStyles();
-                select.value = 'none';
-            });
-            
             innerContainer.appendChild(label);
             innerContainer.appendChild(select);
-            innerContainer.appendChild(resetBtn);
             tabElement.appendChild(innerContainer);
             
-            // Ajouter à la fin du conteneur d'onglets
             tabsContainer.appendChild(tabElement);
             console.log('🎨 Azure Pastel: Dropdown ajoutée aux onglets');
         }
